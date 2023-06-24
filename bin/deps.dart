@@ -63,7 +63,7 @@ Future<Map<String, Package>> createGraph(
 
     // Some simple boolean algebra to simplify condition.
     if (name != null &&
-        !(noDevel && name.endsWith('-devel')) &&
+        !(noDevel && name.endsWith('-devel') && name != 'hipmagma-devel') &&
         !(noDocs && name.endsWith('-docs')) &&
         !(noDbgInfo && name.endsWith('-dbginfo'))) {
       Iterable<String>? deps = node
@@ -128,16 +128,39 @@ void dfs(
   }
 }
 
+void dfs2(
+  Package package,
+  Map<String, int> from,
+  Map<String, Package> original,
+) {
+  assert(from.containsKey(package.name));
+  // print(package);
+
+  if (from[package.name]! > 1) {
+    return;
+  }
+
+  for (final dep in original[package.name]!.deps) {
+    if (!from.containsKey(dep.name)) {
+      from[dep.name] = 0;
+    }
+
+    from[dep.name] = from[dep.name]! + 1;
+
+    dfs2(dep, from, original);
+  }
+}
+
 Future<void> main(List<String> args) async {
   if (args.isEmpty) {
     print(
-        "deps.dart <package-name> <location-of-eopkg-index.xml (default: eopkg-index.xml)>");
+        "deps.dart <package-name> <dep/revdep> <location-of-eopkg-index.xml (default: eopkg-index.xml)>");
     return;
   }
   final String target = args[0];
 
   Map<String, Package> original =
-      await createGraph(args.length > 1 ? args[1] : 'eopkg-index.xml');
+      await createGraph(args.length > 2 ? args[2] : 'eopkg-index.xml');
   print(
       "Construct dependency graph complete, total packages: ${original.length}");
 
@@ -147,20 +170,41 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  Map<String, int> from = {target: 0};
-  dfs(original[target]!, from, original);
-  print(
-      "Successfully isolated subgraph for package $target. Now calculating safe order for rebuild...");
+  if (args[1] == 'dep') {
+    Map<String, int> from = {target: 0};
+    dfs2(original[target]!, from, original);
+    print(
+        "Successfully isolated subgraph for package $target. Now calculating all dependencies...");
 
-  Queue<String> queue = Queue.of([target]);
-  while (queue.isNotEmpty) {
-    String victim = queue.removeFirst();
-    print(victim);
+    Queue<String> queue = Queue.of([target]);
+    while (queue.isNotEmpty) {
+      String victim = queue.removeFirst();
+      print(victim);
+      // print(original[victim]!.deps);
 
-    for (final revdep in original[victim]!.revdeps) {
-      from[revdep.name] = from[revdep.name]! - 1;
-      if (from[revdep.name] == 0) {
-        queue.add(revdep.name);
+      for (final dep in original[victim]!.deps) {
+        from[dep.name] = from[dep.name]! - 1;
+        if (from[dep.name] == 0) {
+          queue.add(dep.name);
+        }
+      }
+    }
+  } else {
+    Map<String, int> from = {target: 0};
+    dfs(original[target]!, from, original);
+    print(
+        "Successfully isolated subgraph for package $target. Now calculating safe order for rebuild...");
+
+    Queue<String> queue = Queue.of([target]);
+    while (queue.isNotEmpty) {
+      String victim = queue.removeFirst();
+      print(victim);
+
+      for (final revdep in original[victim]!.revdeps) {
+        from[revdep.name] = from[revdep.name]! - 1;
+        if (from[revdep.name] == 0) {
+          queue.add(revdep.name);
+        }
       }
     }
   }
