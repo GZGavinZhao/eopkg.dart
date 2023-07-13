@@ -177,15 +177,20 @@ Future<void> main(List<String> args) async {
         "Successfully isolated subgraph for package $target. Now calculating all dependencies...");
 
     Queue<String> queue = Queue.of([target]);
-    while (queue.isNotEmpty) {
-      String victim = queue.removeFirst();
-      print(victim);
-      // print(original[victim]!.deps);
+    int stage = 1;
 
-      for (final dep in original[victim]!.deps) {
-        from[dep.name] = from[dep.name]! - 1;
-        if (from[dep.name] == 0) {
-          queue.add(dep.name);
+    while (queue.isNotEmpty) {
+      int qsize = queue.length;
+      print("stage: ${stage++}:");
+      for (int i = 0; i < qsize; i++) {
+        String victim = queue.removeFirst();
+        print("- $victim");
+
+        for (final dep in original[victim]!.deps) {
+          from[dep.name] = from[dep.name]! - 1;
+          if (from[dep.name] == 0) {
+            queue.add(dep.name);
+          }
         }
       }
     }
@@ -196,14 +201,20 @@ Future<void> main(List<String> args) async {
         "Successfully isolated subgraph for package $target. Now calculating safe order for rebuild...");
 
     Queue<String> queue = Queue.of([target]);
-    while (queue.isNotEmpty) {
-      String victim = queue.removeFirst();
-      print(victim);
+    int stage = 1;
 
-      for (final revdep in original[victim]!.revdeps) {
-        from[revdep.name] = from[revdep.name]! - 1;
-        if (from[revdep.name] == 0) {
-          queue.add(revdep.name);
+    while (queue.isNotEmpty) {
+      int qsize = queue.length;
+      print("stage ${stage++}:");
+      for (int i = 0; i < qsize; i++) {
+        String victim = queue.removeFirst();
+        print("- $victim");
+
+        for (final revdep in original[victim]!.revdeps) {
+          from[revdep.name] = from[revdep.name]! - 1;
+          if (from[revdep.name] == 0) {
+            queue.add(revdep.name);
+          }
         }
       }
     }
