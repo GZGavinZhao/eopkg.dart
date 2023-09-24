@@ -181,7 +181,7 @@ Future<void> main(List<String> args) async {
 
     while (queue.isNotEmpty) {
       int qsize = queue.length;
-      print("stage: ${stage++}:");
+      print("stage ${stage++}:");
       for (int i = 0; i < qsize; i++) {
         String victim = queue.removeFirst();
         print("- $victim");
