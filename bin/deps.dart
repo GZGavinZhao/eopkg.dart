@@ -63,30 +63,13 @@ Future<Map<String, Package>> createGraph(
 
     // Some simple boolean algebra to simplify condition.
     if (name != null &&
-        !(noDevel && name.endsWith('-devel') && name != 'hipmagma-devel') &&
+        !(noDevel && name.endsWith('-devel')) &&
         !(noDocs && name.endsWith('-docs')) &&
         !(noDbgInfo && name.endsWith('-dbginfo'))) {
       Iterable<String>? deps = node
           .getElement("RuntimeDependencies")
           ?.childElements
           .map((p0) => p0.innerText);
-
-      // Some special cases where dependencies were specified incorrectly.
-      if (name == 'haskell-cabal-install') {
-        deps = [
-          'haskell-async',
-          'haskell-echo',
-          'haskell-edit-distance',
-          'haskell-hackage-security',
-          'haskell-HTTP',
-          'haskell-resolv',
-          'haskell-zip-archive',
-        ];
-      } else if (name == 'haskell-nats') {
-        deps = ['ghc'];
-      } else if (name == 'haskell-fail') {
-        deps = ['ghc'];
-      }
 
       if (pkgs[name] == null) {
         pkgs[name] = Package(name);
